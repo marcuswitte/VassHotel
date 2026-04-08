@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "VassHotel",
+    "slug": "vasshotel",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./VH LOGO.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./VH LOGO.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0D1A"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "plugins": [
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "O VassHotel usa Face ID para proteger sua conta."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "O VassHotel precisa acessar sua câmera para a foto do perfil.",
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.vasshotel.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./VH LOGO.png",
+        "backgroundColor": "#0D0D1A"
+      },
+      "package": "com.vasshotel.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT"
+      ]
+    }
+  }
+}
