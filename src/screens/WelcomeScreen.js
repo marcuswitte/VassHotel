@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, TextInput, ScrollView, Alert, Image, Dimensions, Platform, ActivityIndicator, LayoutAnimation, UIManager } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, TextInput, ScrollView, Alert, Image, Dimensions, Platform, ActivityIndicator, LayoutAnimation, UIManager, Keyboard } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -12,7 +12,6 @@ if (Platform.OS === 'android') {
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const AUTH_HEIGHT_REGISTER = SCREEN_HEIGHT * 0.73;
 
 export default function WelcomeScreen() {
   const { login } = useAuth();
@@ -33,6 +32,8 @@ export default function WelcomeScreen() {
   const logoAnim = useRef(new Animated.Value(0)).current;
   const buttonsOpacity = useRef(new Animated.Value(0)).current;
   const authAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  // Separate animated value for keyboard offset — cannot mix native/non-native on same View
+  const keyboardOffset = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -53,6 +54,28 @@ export default function WelcomeScreen() {
     return () => clearTimeout(timer);
   }, []);
 
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = Keyboard.addListener(showEvent, (e) => {
+      Animated.timing(keyboardOffset, {
+        toValue: e.endCoordinates.height,
+        duration: e.duration ?? 250,
+        useNativeDriver: false,
+      }).start();
+    });
+    const onHide = Keyboard.addListener(hideEvent, (e) => {
+      Animated.timing(keyboardOffset, {
+        toValue: 0,
+        duration: e.duration ?? 250,
+        useNativeDriver: false,
+      }).start();
+    });
+
+    return () => { onShow.remove(); onHide.remove(); };
+  }, []);
+
   const openContainer = (tab) => {
     setActiveTab(tab);
     setShowAuth(true);
@@ -67,6 +90,7 @@ export default function WelcomeScreen() {
   };
 
   const closeContainer = () => {
+    Keyboard.dismiss();
     Animated.spring(authAnim, {
       toValue: SCREEN_HEIGHT,
       useNativeDriver: true,
@@ -93,6 +117,7 @@ export default function WelcomeScreen() {
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
+      cameraType: 'front',
     });
     if (!result.canceled) {
       setRegPhoto(result.assets[0].uri);
@@ -198,86 +223,83 @@ export default function WelcomeScreen() {
           </Animated.View>
         </View>
 
-        {/* Container de autenticação */}
+        {/* Container de autenticação
+            authShell: move o bloco inteiro para cima quando o teclado abre (non-native driver, bottom)
+            authContainer: animação de slide vindo de baixo (native driver, transform) */}
         {showAuth && (
-          <Animated.View
-            style={[
-              styles.authContainer,
-              activeTab === 'register' && styles.authContainerTall,
-              { transform: [{ translateY: authAnim }] },
-            ]}
-          >
-            {/* Barra superior: handle + fechar */}
-            <View style={styles.topBar}>
-              <View style={{ flex: 1 }} />
-              <View style={styles.handleBar} />
-              <View style={{ flex: 1, alignItems: 'flex-end' }}>
-                <TouchableOpacity onPress={closeContainer} style={styles.closeBtn}>
-                  <Text style={styles.closeBtnText}>✕</Text>
+          <Animated.View style={[styles.authShell, { bottom: keyboardOffset }]}>
+            <Animated.View
+              style={[styles.authContainer, { transform: [{ translateY: authAnim }] }]}
+            >
+              {/* Barra superior: handle + fechar */}
+              <View style={styles.topBar}>
+                <View style={{ flex: 1 }} />
+                <View style={styles.handleBar} />
+                <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                  <TouchableOpacity onPress={closeContainer} style={styles.closeBtn}>
+                    <Text style={styles.closeBtnText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Tabs */}
+              <View style={styles.tabRow}>
+                <TouchableOpacity
+                  style={[styles.tab, activeTab === 'login' && styles.tabActive]}
+                  onPress={() => switchTab('login')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'login' && styles.tabTextActive]}>
+                    Entrar
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tab, activeTab === 'register' && styles.tabActive]}
+                  onPress={() => switchTab('register')}
+                >
+                  <Text style={[styles.tabText, activeTab === 'register' && styles.tabTextActive]}>
+                    Cadastrar
+                  </Text>
                 </TouchableOpacity>
               </View>
-            </View>
 
-            {/* Tabs */}
-            <View style={styles.tabRow}>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'login' && styles.tabActive]}
-                onPress={() => switchTab('login')}
-              >
-                <Text style={[styles.tabText, activeTab === 'login' && styles.tabTextActive]}>
-                  Entrar
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.tab, activeTab === 'register' && styles.tabActive]}
-                onPress={() => switchTab('register')}
-              >
-                <Text style={[styles.tabText, activeTab === 'register' && styles.tabTextActive]}>
-                  Cadastrar
-                </Text>
-              </TouchableOpacity>
-            </View>
+              {/* Login */}
+              {activeTab === 'login' && (
+                <View style={styles.loginForm}>
+                  <Text style={styles.fieldLabel}>E-mail</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="seu@email.com"
+                    placeholderTextColor="#AAAACC"
+                    value={loginEmail}
+                    onChangeText={setLoginEmail}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                  />
+                  <Text style={styles.fieldLabel}>Senha</Text>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="••••••••"
+                    placeholderTextColor="#AAAACC"
+                    value={loginPassword}
+                    onChangeText={setLoginPassword}
+                    secureTextEntry
+                  />
+                  <TouchableOpacity onPress={handleLogin} disabled={loading} style={styles.submitWrap}>
+                    <LinearGradient colors={['#8B2FC9', '#5C1A8C']} style={styles.submitBtn}>
+                      {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitText}>Entrar</Text>}
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              )}
 
-            {/* Login — container pequeno, sem scroll */}
-            {activeTab === 'login' && (
-              <View style={styles.loginForm}>
-                <Text style={styles.fieldLabel}>E-mail</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="seu@email.com"
-                  placeholderTextColor="#AAAACC"
-                  value={loginEmail}
-                  onChangeText={setLoginEmail}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-                <Text style={styles.fieldLabel}>Senha</Text>
-                <TextInput
-                  style={styles.input}
-                  placeholder="••••••••"
-                  placeholderTextColor="#AAAACC"
-                  value={loginPassword}
-                  onChangeText={setLoginPassword}
-                  secureTextEntry
-                />
-                <TouchableOpacity onPress={handleLogin} disabled={loading} style={styles.submitWrap}>
-                  <LinearGradient colors={['#8B2FC9', '#5C1A8C']} style={styles.submitBtn}>
-                    {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitText}>Entrar</Text>}
-                  </LinearGradient>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Cadastro — container alto com scroll */}
-            {activeTab === 'register' && (
-              <View style={{ flex: 1 }}>
+              {/* Cadastro — mesmo tamanho do login, com scroll interno */}
+              {activeTab === 'register' && (
                 <ScrollView
-                  style={{ flex: 1 }}
+                  style={styles.registerScroll}
                   contentContainerStyle={styles.registerScrollContent}
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
-                  automaticallyAdjustKeyboardInsets
                 >
                   <Text style={styles.fieldLabel}>Nome Completo</Text>
                   <TextInput
@@ -317,7 +339,7 @@ export default function WelcomeScreen() {
                     onPress={handleTakePhoto}
                   >
                     {regPhoto ? (
-                      <Text style={styles.optionTextDone}>Foto capturada</Text>
+                      <Text style={styles.optionTextDone}>✓ Foto capturada</Text>
                     ) : (
                       <>
                         <Text style={styles.optionIcon}>📷</Text>
@@ -347,8 +369,8 @@ export default function WelcomeScreen() {
                     </LinearGradient>
                   </TouchableOpacity>
                 </ScrollView>
-              </View>
-            )}
+              )}
+            </Animated.View>
           </Animated.View>
         )}
 
@@ -410,24 +432,26 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  authContainer: {
+  // Posicionamento absoluto — sobe junto com o teclado (non-native)
+  authShell: {
     position: 'absolute',
-    bottom: 0,
     left: 0,
     right: 0,
+  },
+
+  // Visual do painel branco + animação de slide (native)
+  authContainer: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 32,
     borderTopRightRadius: 32,
     paddingHorizontal: 24,
     paddingTop: 10,
+    paddingBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -4 },
     shadowOpacity: 0.25,
     shadowRadius: 12,
     elevation: 20,
-  },
-  authContainerTall: {
-    height: AUTH_HEIGHT_REGISTER,
   },
 
   topBar: {
@@ -478,9 +502,13 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 36,
   },
+
+  registerScroll: {
+    maxHeight: 260,
+  },
   registerScrollContent: {
     paddingTop: 6,
-    paddingBottom: 40,
+    paddingBottom: 20,
   },
 
   fieldLabel: {

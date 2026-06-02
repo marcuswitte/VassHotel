@@ -40,11 +40,17 @@ export function AuthProvider({ children }) {
     setIsLocked(false);
   };
 
+  const updateUser = async (updatedData) => {
+    const merged = { ...user, ...updatedData };
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    setUser(merged);
+  };
+
   const unlock = () => setIsLocked(false);
   const lock = () => setIsLocked(true);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isLocked, login, logout, unlock, lock }}>
+    <AuthContext.Provider value={{ user, isLoading, isLocked, login, logout, unlock, lock, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

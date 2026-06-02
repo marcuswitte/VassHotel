@@ -1,8 +1,9 @@
-import { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert, RefreshControl, ImageBackground } from 'react-native';
+import { useState, useCallback, useEffect, memo } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert, RefreshControl, ImageBackground, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { getHotelsWithAvailability } from '../data/hotels';
 import { LOGO_TRANSPARENT } from '../assets/images';
@@ -26,7 +27,6 @@ const starStyles = StyleSheet.create({
 function HotelCard({ hotel, onPress }) {
   return (
     <TouchableOpacity style={cardStyles.card} onPress={onPress} activeOpacity={0.88}>
-      {/* Header com foto do hotel */}
       <ImageBackground source={hotel.image} style={cardStyles.header} imageStyle={cardStyles.headerImage}>
         <LinearGradient colors={['transparent', 'rgba(0,0,0,0.35)']} style={cardStyles.headerOverlay} />
         <View style={[cardStyles.badge, hotel.isFull ? cardStyles.badgeFull : cardStyles.badgeAvail]}>
@@ -34,14 +34,12 @@ function HotelCard({ hotel, onPress }) {
         </View>
       </ImageBackground>
 
-      {/* Conteúdo */}
       <View style={cardStyles.body}>
         <Text style={cardStyles.name}>{hotel.name}</Text>
         <Text style={cardStyles.address}>{hotel.city} — {hotel.state}</Text>
         <StarRating rating={hotel.rating} />
         <Text style={cardStyles.ratingCount}>({hotel.totalRatings} avaliações)</Text>
 
-        {/* Amenidades */}
         <View style={cardStyles.amenitiesRow}>
           {hotel.amenities.slice(0, 3).map((a, i) => (
             <View key={i} style={cardStyles.amenityChip}>
@@ -82,17 +80,9 @@ const cardStyles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 6,
   },
-  header: {
-    height: 160,
-    justifyContent: 'flex-end',
-    overflow: 'hidden',
-  },
-  headerImage: {
-    resizeMode: 'cover',
-  },
-  headerOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
+  header: { height: 160, justifyContent: 'flex-end', overflow: 'hidden' },
+  headerImage: { resizeMode: 'cover' },
+  headerOverlay: { ...StyleSheet.absoluteFillObject },
   badge: {
     position: 'absolute',
     top: 12,
@@ -102,98 +92,25 @@ const cardStyles = StyleSheet.create({
     borderRadius: 20,
     zIndex: 1,
   },
-  badgeAvail: {
-    backgroundColor: 'rgba(0,200,83,0.85)',
-  },
-  badgeFull: {
-    backgroundColor: 'rgba(255,61,0,0.85)',
-  },
-  badgeText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  body: {
-    padding: 16,
-  },
-  name: {
-    fontSize: 17,
-    fontWeight: '800',
-    color: '#1A0033',
-    marginBottom: 2,
-  },
-  address: {
-    color: '#888899',
-    fontSize: 13,
-  },
-  ratingCount: {
-    color: '#AAAACC',
-    fontSize: 12,
-    marginTop: 2,
-  },
-  amenitiesRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 10,
-    gap: 6,
-  },
-  amenityChip: {
-    backgroundColor: '#F3F0FA',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  amenityText: {
-    color: '#5C1A8C',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  ctaBtn: {
-    marginTop: 14,
-    backgroundColor: '#8B2FC9',
-    borderRadius: 12,
-    paddingVertical: 11,
-    alignItems: 'center',
-  },
-  ctaBtnDisabled: {
-    backgroundColor: '#CCCCDD',
-  },
-  ctaText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-    fontSize: 14,
-  },
+  badgeAvail: { backgroundColor: 'rgba(0,200,83,0.85)' },
+  badgeFull: { backgroundColor: 'rgba(255,61,0,0.85)' },
+  badgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  body: { padding: 16 },
+  name: { fontSize: 17, fontWeight: '800', color: '#1A0033', marginBottom: 2 },
+  address: { color: '#888899', fontSize: 13 },
+  ratingCount: { color: '#AAAACC', fontSize: 12, marginTop: 2 },
+  amenitiesRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10, gap: 6 },
+  amenityChip: { backgroundColor: '#F3F0FA', borderRadius: 8, paddingHorizontal: 10, paddingVertical: 4 },
+  amenityText: { color: '#5C1A8C', fontSize: 11, fontWeight: '600' },
+  ctaBtn: { marginTop: 14, backgroundColor: '#8B2FC9', borderRadius: 12, paddingVertical: 11, alignItems: 'center' },
+  ctaBtnDisabled: { backgroundColor: '#CCCCDD' },
+  ctaText: { color: '#FFFFFF', fontWeight: '700', fontSize: 14 },
 });
 
-export default function HotelListScreen({ navigation }) {
-  const { user, logout } = useAuth();
-  const [hotels, setHotels] = useState(() => getHotelsWithAvailability());
-  const [refreshing, setRefreshing] = useState(false);
-
-  const firstName = user?.name?.split(' ')[0] ?? 'Hóspede';
-
-  const onRefresh = useCallback(() => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setHotels(getHotelsWithAvailability());
-      setRefreshing(false);
-    }, 700);
-  }, []);
-
-  const handleLogout = () => {
-    Alert.alert(
-      'Sair da Conta',
-      'Deseja sair do VassHotel?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Sair', style: 'destructive', onPress: logout },
-      ]
-    );
-  };
-
-  const ListHeader = () => (
+// Definido fora do componente para ter referência estável — FlatList não desmonta o header ao digitar
+const HotelListHeader = memo(function HotelListHeader({ user, firstName, searchQuery, onSearchChange, onLogout, onEditProfile }) {
+  return (
     <View>
-      {/* Header com gradiente */}
       <LinearGradient colors={['#0D0D1A', '#1C0035', '#3A0080']} style={styles.header}>
         <SafeAreaView edges={['top']}>
           <View style={styles.headerContent}>
@@ -204,21 +121,27 @@ export default function HotelListScreen({ navigation }) {
                 <Text style={styles.headerSub}>Encontre o seu hotel ideal</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+            <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
               <MaterialIcons name="logout" size={20} color="#FFFFFF" />
             </TouchableOpacity>
           </View>
 
-          {/* Foto de perfil */}
-          {user?.photoUri && (
-            <View style={styles.profileBar}>
+          <View style={styles.profileBar}>
+            {user?.photoUri ? (
               <Image source={{ uri: user.photoUri }} style={styles.profilePhoto} />
-              <View>
-                <Text style={styles.profileName}>{user.name}</Text>
-                <Text style={styles.profileEmail}>{user.email}</Text>
+            ) : (
+              <View style={styles.profilePhotoPlaceholder}>
+                <Text style={styles.profilePhotoInitial}>{user?.name?.[0]?.toUpperCase() ?? '?'}</Text>
               </View>
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={styles.profileName}>{user?.name}</Text>
+              <Text style={styles.profileEmail}>{user?.email}</Text>
             </View>
-          )}
+            <TouchableOpacity onPress={onEditProfile} style={styles.editProfileBtn}>
+              <MaterialIcons name="edit" size={18} color="rgba(255,255,255,0.85)" />
+            </TouchableOpacity>
+          </View>
         </SafeAreaView>
       </LinearGradient>
 
@@ -226,21 +149,242 @@ export default function HotelListScreen({ navigation }) {
         <Text style={styles.sectionTitle}>Nossas Unidades</Text>
         <Text style={styles.sectionSub}>Puxe para atualizar disponibilidade</Text>
       </View>
+
+      <View style={styles.searchContainer}>
+        <MaterialIcons name="search" size={20} color="#9999BB" style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar hotéis..."
+          placeholderTextColor="#9999BB"
+          value={searchQuery}
+          onChangeText={onSearchChange}
+          returnKeyType="search"
+          clearButtonMode="while-editing"
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => onSearchChange('')} style={styles.searchClear}>
+            <MaterialIcons name="close" size={18} color="#9999BB" />
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
+});
+
+function EditProfileModal({ visible, user, onClose, updateUser }) {
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [photo, setPhoto] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (visible && user) {
+      setName(user.name ?? '');
+      setEmail(user.email ?? '');
+      setPhoto(user.photoUri ?? null);
+    }
+  }, [visible, user]);
+
+  const handleTakePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permissão negada', 'Precisamos de acesso à câmera.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+      cameraType: 'front',
+    });
+    if (!result.canceled) setPhoto(result.assets[0].uri);
+  };
+
+  const handleSave = async () => {
+    if (!name.trim()) {
+      Alert.alert('Campo obrigatório', 'O nome não pode estar vazio.');
+      return;
+    }
+    setLoading(true);
+    await updateUser({ name: name.trim(), email: email.trim(), photoUri: photo });
+    setLoading(false);
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={editStyles.container}>
+        <View style={editStyles.header}>
+          <TouchableOpacity onPress={onClose} style={editStyles.closeBtn}>
+            <MaterialIcons name="close" size={24} color="#5C1A8C" />
+          </TouchableOpacity>
+          <Text style={editStyles.title}>Editar Perfil</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <ScrollView contentContainerStyle={editStyles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <View style={editStyles.photoSection}>
+            <TouchableOpacity onPress={handleTakePhoto} style={editStyles.photoWrapper}>
+              {photo ? (
+                <Image source={{ uri: photo }} style={editStyles.photo} />
+              ) : (
+                <View style={editStyles.photoPlaceholder}>
+                  <Text style={editStyles.photoInitial}>{name?.[0]?.toUpperCase() ?? '?'}</Text>
+                </View>
+              )}
+              <View style={editStyles.photoEditBadge}>
+                <MaterialIcons name="camera-alt" size={16} color="#FFFFFF" />
+              </View>
+            </TouchableOpacity>
+            <Text style={editStyles.photoHint}>Toque para alterar a foto</Text>
+          </View>
+
+          <Text style={editStyles.fieldLabel}>Nome Completo</Text>
+          <TextInput
+            style={editStyles.input}
+            value={name}
+            onChangeText={setName}
+            placeholder="Seu nome"
+            placeholderTextColor="#AAAACC"
+            autoCapitalize="words"
+          />
+
+          <Text style={editStyles.fieldLabel}>E-mail</Text>
+          <TextInput
+            style={editStyles.input}
+            value={email}
+            onChangeText={setEmail}
+            placeholder="seu@email.com"
+            placeholderTextColor="#AAAACC"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+          />
+
+          <TouchableOpacity onPress={handleSave} disabled={loading} style={editStyles.saveWrap}>
+            <LinearGradient colors={['#8B2FC9', '#5C1A8C']} style={editStyles.saveBtn}>
+              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={editStyles.saveBtnText}>Salvar Alterações</Text>}
+            </LinearGradient>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    </Modal>
+  );
+}
+
+const editStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#F5F3FA' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0EDFA',
+  },
+  closeBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center' },
+  title: { fontSize: 17, fontWeight: '700', color: '#1A0033' },
+  content: { padding: 24, paddingBottom: 48 },
+  photoSection: { alignItems: 'center', marginBottom: 28 },
+  photoWrapper: { position: 'relative', marginBottom: 8 },
+  photo: { width: 90, height: 90, borderRadius: 45, borderWidth: 3, borderColor: '#8B2FC9' },
+  photoPlaceholder: {
+    width: 90, height: 90, borderRadius: 45,
+    backgroundColor: '#8B2FC9', justifyContent: 'center', alignItems: 'center',
+    borderWidth: 3, borderColor: '#5C1A8C',
+  },
+  photoInitial: { fontSize: 36, color: '#FFFFFF', fontWeight: '700' },
+  photoEditBadge: {
+    position: 'absolute', bottom: 0, right: 0,
+    backgroundColor: '#5C1A8C', borderRadius: 14,
+    width: 28, height: 28, justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: '#FFFFFF',
+  },
+  photoHint: { color: '#AAAACC', fontSize: 12 },
+  fieldLabel: {
+    fontSize: 12, fontWeight: '700', color: '#3D1A5C',
+    marginBottom: 5, marginTop: 16,
+    textTransform: 'uppercase', letterSpacing: 0.5,
+  },
+  input: {
+    backgroundColor: '#FFFFFF', borderWidth: 1.5, borderColor: '#E8DEFF',
+    borderRadius: 12, paddingHorizontal: 16, paddingVertical: 12,
+    fontSize: 15, color: '#1A0033',
+  },
+  saveWrap: { marginTop: 28, borderRadius: 14, overflow: 'hidden' },
+  saveBtn: { paddingVertical: 15, alignItems: 'center' },
+  saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
+});
+
+export default function HotelListScreen({ navigation }) {
+  const { user, logout, updateUser } = useAuth();
+  const [hotels, setHotels] = useState(() => getHotelsWithAvailability());
+  const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showEditModal, setShowEditModal] = useState(false);
+
+  const firstName = user?.name?.split(' ')[0] ?? 'Hóspede';
+
+  const filteredHotels = searchQuery.trim()
+    ? hotels.filter(h =>
+        h.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        h.city.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : hotels;
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setHotels(getHotelsWithAvailability());
+      setRefreshing(false);
+    }, 700);
+  }, []);
+
+  const handleLogout = useCallback(() => {
+    Alert.alert(
+      'Sair da Conta',
+      'Deseja sair do VassHotel?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Sair', style: 'destructive', onPress: logout },
+      ]
+    );
+  }, [logout]);
+
+  const handleOpenEdit = useCallback(() => setShowEditModal(true), []);
 
   return (
     <View style={styles.container}>
       <FlatList
-        data={hotels}
+        data={filteredHotels}
         keyExtractor={(item) => item.id}
-        ListHeaderComponent={ListHeader}
+        ListHeaderComponent={
+          <HotelListHeader
+            user={user}
+            firstName={firstName}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            onLogout={handleLogout}
+            onEditProfile={handleOpenEdit}
+          />
+        }
         renderItem={({ item }) => (
           <HotelCard
             hotel={item}
             onPress={() => navigation.navigate('HotelDetail', { hotel: item })}
           />
         )}
+        ListEmptyComponent={() =>
+          searchQuery ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyStateText}>Nenhum hotel encontrado</Text>
+              <Text style={styles.emptyStateSub}>Tente outro termo de busca</Text>
+            </View>
+          ) : null
+        }
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -252,90 +396,71 @@ export default function HotelListScreen({ navigation }) {
         contentContainerStyle={{ paddingBottom: 30 }}
         showsVerticalScrollIndicator={false}
       />
+
+      <EditProfileModal
+        visible={showEditModal}
+        user={user}
+        onClose={() => setShowEditModal(false)}
+        updateUser={updateUser}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F3FA',
-  },
-  header: {
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-  },
+  container: { flex: 1, backgroundColor: '#F5F3FA' },
+  header: { paddingBottom: 20, paddingHorizontal: 20 },
   headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingTop: 8,
+    flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'space-between', paddingTop: 8,
   },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  headerLogo: {
-    width: 40,
-    height: 40,
-  },
-  headerGreeting: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  headerSub: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 12,
-    marginTop: 1,
-  },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  headerLogo: { width: 40, height: 40 },
+  headerGreeting: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  headerSub: { color: 'rgba(255,255,255,0.5)', fontSize: 12, marginTop: 1 },
   logoutBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 38, height: 38, borderRadius: 19,
     backgroundColor: 'rgba(255,255,255,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: 'center', alignItems: 'center',
   },
   profileBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 14,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 14,
-    padding: 10,
-    gap: 12,
+    flexDirection: 'row', alignItems: 'center',
+    marginTop: 14, backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 14, padding: 10, gap: 12,
   },
   profilePhoto: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
+    width: 44, height: 44, borderRadius: 22,
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
   },
-  profileName: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
+  profilePhotoPlaceholder: {
+    width: 44, height: 44, borderRadius: 22,
+    backgroundColor: 'rgba(139,47,201,0.6)',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 2, borderColor: 'rgba(255,255,255,0.4)',
   },
-  profileEmail: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 12,
+  profilePhotoInitial: { color: '#FFFFFF', fontSize: 18, fontWeight: '700' },
+  profileName: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  profileEmail: { color: 'rgba(255,255,255,0.5)', fontSize: 12 },
+  editProfileBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    justifyContent: 'center', alignItems: 'center',
   },
-  sectionHeader: {
-    paddingHorizontal: 20,
-    paddingTop: 22,
-    paddingBottom: 12,
+  sectionHeader: { paddingHorizontal: 20, paddingTop: 22, paddingBottom: 12 },
+  sectionTitle: { fontSize: 20, fontWeight: '800', color: '#1A0033' },
+  sectionSub: { fontSize: 12, color: '#AAAACC', marginTop: 2 },
+  searchContainer: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFFFFF', borderRadius: 14,
+    marginHorizontal: 16, marginBottom: 16,
+    paddingHorizontal: 12, paddingVertical: 10,
+    shadowColor: '#2D0060', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08, shadowRadius: 6, elevation: 3,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: '#1A0033',
-  },
-  sectionSub: {
-    fontSize: 12,
-    color: '#AAAACC',
-    marginTop: 2,
-  },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 15, color: '#1A0033', paddingVertical: 0 },
+  searchClear: { padding: 2 },
+  emptyState: { alignItems: 'center', paddingVertical: 48 },
+  emptyStateText: { color: '#AAAACC', fontSize: 16, fontWeight: '600' },
+  emptyStateSub: { color: '#CCCCDD', fontSize: 13, marginTop: 4 },
 });
