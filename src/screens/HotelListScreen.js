@@ -5,11 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
-import { getHotelsWithAvailability } from '../data/hotels';
-import { LOGO_TRANSPARENT } from '../assets/images';
+import { getHotels, seedHotels } from '../services/hotelService';
+import { LOGO_TRANSPARENT, HOTEL_IMG_1, HOTEL_IMG_2, HOTEL_IMG_3 } from '../assets/images';
+import { compressToBase64 } from '../utils/imageUtils';
+
+const IMAGE_MAP = { '1': HOTEL_IMG_1, '2': HOTEL_IMG_2, '3': HOTEL_IMG_3 };
 
 function StarRating({ rating }) {
-  const stars = Array.from({ length: 5 }, (_, i) => i + 1 <= Math.round(rating) ? '★' : '☆');
+  const stars = Array.from({ length: 5 }, (_, i) => i + 1 <= Math.floor(rating) ? '★' : '☆');
   return (
     <View style={starStyles.row}>
       <Text style={starStyles.stars}>{stars.join('')}</Text>
@@ -108,7 +111,7 @@ const cardStyles = StyleSheet.create({
 });
 
 // Definido fora do componente para ter referência estável — FlatList não desmonta o header ao digitar
-const HotelListHeader = memo(function HotelListHeader({ user, firstName, searchQuery, onSearchChange, onLogout, onEditProfile }) {
+const HotelListHeader = memo(function HotelListHeader({ user, firstName, searchQuery, onSearchChange, onLogout, onEditProfile, onReservations }) {
   return (
     <View>
       <LinearGradient colors={['#0D0D1A', '#1C0035', '#3A0080']} style={styles.header}>
@@ -121,9 +124,14 @@ const HotelListHeader = memo(function HotelListHeader({ user, firstName, searchQ
                 <Text style={styles.headerSub}>Encontre o seu hotel ideal</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
-              <MaterialIcons name="logout" size={20} color="#FFFFFF" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TouchableOpacity onPress={onReservations} style={styles.logoutBtn}>
+                <MaterialIcons name="bookmark" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
+                <MaterialIcons name="logout" size={20} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <View style={styles.profileBar}>
@@ -197,7 +205,10 @@ function EditProfileModal({ visible, user, onClose, updateUser }) {
       quality: 0.8,
       cameraType: 'front',
     });
-    if (!result.canceled) setPhoto(result.assets[0].uri);
+    if (!result.canceled) {
+      const base64Uri = await compressToBase64(result.assets[0].uri);
+      setPhoto(base64Uri);
+    }
   };
 
   const handleSave = async () => {
@@ -321,12 +332,20 @@ const editStyles = StyleSheet.create({
 
 export default function HotelListScreen({ navigation }) {
   const { user, logout, updateUser } = useAuth();
-  const [hotels, setHotels] = useState(() => getHotelsWithAvailability());
+  const [hotels, setHotels] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [showEditModal, setShowEditModal] = useState(false);
 
   const firstName = user?.name?.split(' ')[0] ?? 'Hóspede';
+
+  const loadHotels = useCallback(async () => {
+    await seedHotels();
+    const data = await getHotels();
+    setHotels(data.map((h) => ({ ...h, image: IMAGE_MAP[h.imageKey] })));
+  }, []);
+
+  useEffect(() => { loadHotels(); }, [loadHotels]);
 
   const filteredHotels = searchQuery.trim()
     ? hotels.filter(h =>
@@ -335,13 +354,11 @@ export default function HotelListScreen({ navigation }) {
       )
     : hotels;
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    setTimeout(() => {
-      setHotels(getHotelsWithAvailability());
-      setRefreshing(false);
-    }, 700);
-  }, []);
+    await loadHotels();
+    setRefreshing(false);
+  }, [loadHotels]);
 
   const handleLogout = useCallback(() => {
     Alert.alert(
@@ -355,6 +372,7 @@ export default function HotelListScreen({ navigation }) {
   }, [logout]);
 
   const handleOpenEdit = useCallback(() => setShowEditModal(true), []);
+  const handleReservations = useCallback(() => navigation.navigate('Reservations'), [navigation]);
 
   return (
     <View style={styles.container}>
@@ -369,6 +387,7 @@ export default function HotelListScreen({ navigation }) {
             onSearchChange={setSearchQuery}
             onLogout={handleLogout}
             onEditProfile={handleOpenEdit}
+            onReservations={handleReservations}
           />
         }
         renderItem={({ item }) => (

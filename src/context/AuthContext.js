@@ -1,9 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../config/firebase';
+import { getUserProfile, updateUserProfile } from '../services/userService';
+import { logoutUser } from '../services/authService';
 
 const AuthContext = createContext(null);
-
-const STORAGE_KEY = '@vasshotel_user';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -11,39 +12,41 @@ export function AuthProvider({ children }) {
   const [isLocked, setIsLocked] = useState(false);
 
   useEffect(() => {
-    loadUser();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const profile = await getUserProfile(firebaseUser.uid);
+        setUser({
+          uid: firebaseUser.uid,
+          name: profile?.name ?? firebaseUser.email,
+          email: firebaseUser.email,
+          photoUri: profile?.photoUri ?? null,
+        });
+        setIsLocked(true);
+      } else {
+        setUser(null);
+        setIsLocked(false);
+      }
+      setIsLoading(false);
+    });
+    return unsubscribe;
   }, []);
 
-  const loadUser = async () => {
-    try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        setUser(JSON.parse(raw));
-        setIsLocked(true);
-      }
-    } catch (e) {
-      console.error('Erro ao carregar usuário:', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const login = async (userData) => {
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+  const login = (userData) => {
     setUser(userData);
     setIsLocked(false);
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem(STORAGE_KEY);
+    await logoutUser();
     setUser(null);
     setIsLocked(false);
   };
 
   const updateUser = async (updatedData) => {
-    const merged = { ...user, ...updatedData };
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-    setUser(merged);
+    if (user?.uid) {
+      await updateUserProfile(user.uid, updatedData);
+    }
+    setUser((prev) => ({ ...prev, ...updatedData }));
   };
 
   const unlock = () => setIsLocked(false);

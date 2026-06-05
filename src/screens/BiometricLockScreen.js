@@ -8,7 +8,6 @@ import { LOGO_TRANSPARENT } from '../assets/images';
 
 export default function BiometricLockScreen() {
   const { user, unlock, logout } = useAuth();
-
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -56,8 +55,8 @@ export default function BiometricLockScreen() {
 
     if (result.success) {
       unlock();
-    } else if (result.error === 'user_cancel' || result.error === 'system_cancel') {
-      // user dismissed, stays on lock screen
+    } else if 
+      (result.error === 'user_cancel' || result.error === 'system_cancel') {
     } else {
       Alert.alert('Falha na Autenticação', 'Tente novamente ou use a senha do dispositivo.');
     }
@@ -69,32 +68,20 @@ export default function BiometricLockScreen() {
     <LinearGradient colors={['#0D0D1A', '#1C0035', '#2D0060']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
         <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-          {/* Logo */}
           <Image source={LOGO_TRANSPARENT} style={styles.logo} resizeMode="contain" />
           <Text style={styles.appName}>VassHotel</Text>
-
-          {/* Foto do usuário (se houver) */}
           {user?.photoUri ? (
-            <Image source={{ uri: user.photoUri }} style={styles.userPhoto} />
-          ) : (
+            <Image source={{ uri: user.photoUri }} style={styles.userPhoto} />) : (
             <View style={styles.userPhotoPlaceholder}>
               <Text style={styles.userPhotoInitial}>{firstName.charAt(0).toUpperCase()}</Text>
             </View>
           )}
-
           <Text style={styles.greeting}>Bem-vindo de volta,</Text>
           <Text style={styles.userName}>{firstName}</Text>
           <Text style={styles.subtitle}>Autentique-se para continuar</Text>
-
-          {/* Botão biometria */}
           <TouchableOpacity onPress={authenticate} activeOpacity={0.8}>
-            <Animated.View
-              style={[styles.biometricCircle, { transform: [{ scale: pulseAnim }] }]}
-            >
-              <LinearGradient
-                colors={['#8B2FC9', '#5C1A8C']}
-                style={styles.biometricGradient}
-              >
+            <Animated.View style={[styles.biometricCircle, { transform: [{ scale: pulseAnim }] }]}>
+              <LinearGradient colors={['#8B2FC9', '#5C1A8C']} style={styles.biometricGradient}>
                 <Text style={styles.biometricIcon}>🔐</Text>
               </LinearGradient>
             </Animated.View>

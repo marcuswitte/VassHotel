@@ -11,7 +11,9 @@
       "resizeMode": "contain",
       "backgroundColor": "#0D0D1A"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "plugins": [
       [
         "expo-local-authentication",
@@ -25,7 +27,8 @@
           "cameraPermission": "O VassHotel precisa acessar sua câmera para a foto do perfil.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "ios": {
       "supportsTablet": false,

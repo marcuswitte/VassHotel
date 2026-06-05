@@ -41,7 +41,6 @@ yarn-error.*
 # Editor
 .vscode/
 .idea/
-.claude/
 
 # Logs
 *.log

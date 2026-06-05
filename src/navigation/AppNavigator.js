@@ -5,6 +5,7 @@ import WelcomeScreen from '../screens/WelcomeScreen';
 import BiometricLockScreen from '../screens/BiometricLockScreen';
 import HotelListScreen from '../screens/HotelListScreen';
 import HotelDetailScreen from '../screens/HotelDetailScreen';
+import ReservationsScreen from '../screens/ReservationsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -41,6 +42,11 @@ export default function AppNavigator() {
       <Stack.Screen
         name="HotelDetail"
         component={HotelDetailScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Reservations"
+        component={ReservationsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>

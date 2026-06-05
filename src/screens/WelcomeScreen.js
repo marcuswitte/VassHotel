@@ -6,6 +6,9 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
 import { LOGO_TRANSPARENT } from '../assets/images';
+import { loginUser, registerUser } from '../services/authService';
+import { createUserProfile, getUserProfile } from '../services/userService';
+import { compressToBase64 } from '../utils/imageUtils';
 
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -120,7 +123,8 @@ export default function WelcomeScreen() {
       cameraType: 'front',
     });
     if (!result.canceled) {
-      setRegPhoto(result.assets[0].uri);
+      const base64Uri = await compressToBase64(result.assets[0].uri);
+      setRegPhoto(base64Uri);
     }
   };
 
@@ -153,14 +157,26 @@ export default function WelcomeScreen() {
       return;
     }
     setLoading(true);
-    setTimeout(async () => {
-      await login({
-        name: loginEmail.split('@')[0].replace(/[._]/g, ' '),
-        email: loginEmail.trim().toLowerCase(),
-        photoUri: null,
+    try {
+      const cred = await loginUser(loginEmail.trim().toLowerCase(), loginPassword);
+      const profile = await getUserProfile(cred.user.uid);
+      login({
+        uid: cred.user.uid,
+        name: profile?.name ?? cred.user.email,
+        email: cred.user.email,
+        photoUri: profile?.photoUri ?? null,
       });
+    } catch (e) {
+      const msg =
+        e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password'
+          ? 'E-mail ou senha incorretos.'
+          : e.code === 'auth/user-not-found'
+          ? 'Usuário não encontrado.'
+          : 'Erro ao entrar. Tente novamente.';
+      Alert.alert('Erro de Login', msg);
+    } finally {
       setLoading(false);
-    }, 900);
+    }
   };
 
   const handleRegister = async () => {
@@ -181,21 +197,34 @@ export default function WelcomeScreen() {
       return;
     }
     setLoading(true);
-    setTimeout(async () => {
-      await login({
+    try {
+      const cred = await registerUser(regEmail.trim().toLowerCase(), regPassword);
+      await createUserProfile(cred.user.uid, {
         name: regName.trim(),
         email: regEmail.trim().toLowerCase(),
         photoUri: regPhoto,
       });
+      login({
+        uid: cred.user.uid,
+        name: regName.trim(),
+        email: regEmail.trim().toLowerCase(),
+        photoUri: regPhoto,
+      });
+    } catch (e) {
+      const msg =
+        e.code === 'auth/email-already-in-use'
+          ? 'Este e-mail já está cadastrado.'
+          : 'Erro ao criar conta. Tente novamente.';
+      Alert.alert('Erro no Cadastro', msg);
+    } finally {
       setLoading(false);
-    }, 900);
+    }
   };
 
   return (
     <LinearGradient colors={['#0D0D1A', '#1C0035', '#2D0060']} style={styles.container}>
       <SafeAreaView style={styles.safe}>
 
-        {/* Logo + botões de acesso */}
         <View style={styles.logoArea}>
           <Animated.View style={{ transform: [{ translateY: logoAnim }], alignItems: 'center' }}>
             <Image source={LOGO_TRANSPARENT} style={styles.logo} resizeMode="contain" />
@@ -223,9 +252,6 @@ export default function WelcomeScreen() {
           </Animated.View>
         </View>
 
-        {/* Container de autenticação
-            authShell: move o bloco inteiro para cima quando o teclado abre (non-native driver, bottom)
-            authContainer: animação de slide vindo de baixo (native driver, transform) */}
         {showAuth && (
           <Animated.View style={[styles.authShell, { bottom: keyboardOffset }]}>
             <Animated.View
@@ -242,7 +268,6 @@ export default function WelcomeScreen() {
                 </View>
               </View>
 
-              {/* Tabs */}
               <View style={styles.tabRow}>
                 <TouchableOpacity
                   style={[styles.tab, activeTab === 'login' && styles.tabActive]}
@@ -262,7 +287,6 @@ export default function WelcomeScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Login */}
               {activeTab === 'login' && (
                 <View style={styles.loginForm}>
                   <Text style={styles.fieldLabel}>E-mail</Text>
@@ -293,7 +317,6 @@ export default function WelcomeScreen() {
                 </View>
               )}
 
-              {/* Cadastro — mesmo tamanho do login, com scroll interno */}
               {activeTab === 'register' && (
                 <ScrollView
                   style={styles.registerScroll}
@@ -432,14 +455,12 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
   },
 
-  // Posicionamento absoluto — sobe junto com o teclado (non-native)
   authShell: {
     position: 'absolute',
     left: 0,
     right: 0,
   },
 
-  // Visual do painel branco + animação de slide (native)
   authContainer: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 32,
