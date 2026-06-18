@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, TouchableOpacity, TextInput, ScrollView, Alert, Image, Dimensions, Platform, ActivityIndicator, LayoutAnimation, UIManager, Keyboard } from 'react-native';
+import { View, Text, StyleSheet, Animated, TouchableOpacity, TextInput, ScrollView, Alert, Image, Dimensions, Platform, ActivityIndicator, LayoutAnimation, Keyboard } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -10,9 +10,6 @@ import { loginUser, registerUser } from '../services/authService';
 import { createUserProfile, getUserProfile } from '../services/userService';
 import { compressToBase64 } from '../utils/imageUtils';
 
-if (Platform.OS === 'android') {
-  UIManager.setLayoutAnimationEnabledExperimental?.(true);
-}
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -236,6 +233,7 @@ export default function WelcomeScreen() {
               style={styles.btnPrimary}
               onPress={() => openContainer('login')}
               activeOpacity={0.85}
+              testID="btn-welcome-login"
             >
               <LinearGradient colors={['#8B2FC9', '#5C1A8C']} style={styles.btnPrimaryGradient}>
                 <Text style={styles.btnPrimaryText}>Entrar</Text>
@@ -246,6 +244,7 @@ export default function WelcomeScreen() {
               style={styles.btnSecondary}
               onPress={() => openContainer('register')}
               activeOpacity={0.75}
+              testID="btn-welcome-register"
             >
               <Text style={styles.btnSecondaryText}>Criar conta</Text>
             </TouchableOpacity>
@@ -291,6 +290,7 @@ export default function WelcomeScreen() {
                 <View style={styles.loginForm}>
                   <Text style={styles.fieldLabel}>E-mail</Text>
                   <TextInput
+                    testID="input-login-email"
                     style={styles.input}
                     placeholder="seu@email.com"
                     placeholderTextColor="#AAAACC"
@@ -302,6 +302,7 @@ export default function WelcomeScreen() {
                   />
                   <Text style={styles.fieldLabel}>Senha</Text>
                   <TextInput
+                    testID="input-login-password"
                     style={styles.input}
                     placeholder="••••••••"
                     placeholderTextColor="#AAAACC"
@@ -309,7 +310,7 @@ export default function WelcomeScreen() {
                     onChangeText={setLoginPassword}
                     secureTextEntry
                   />
-                  <TouchableOpacity onPress={handleLogin} disabled={loading} style={styles.submitWrap}>
+                  <TouchableOpacity testID="btn-login-submit" onPress={handleLogin} disabled={loading} style={styles.submitWrap}>
                     <LinearGradient colors={['#8B2FC9', '#5C1A8C']} style={styles.submitBtn}>
                       {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitText}>Entrar</Text>}
                     </LinearGradient>
@@ -326,6 +327,7 @@ export default function WelcomeScreen() {
                 >
                   <Text style={styles.fieldLabel}>Nome Completo</Text>
                   <TextInput
+                    testID="input-register-name"
                     style={styles.input}
                     placeholder="Seu nome"
                     placeholderTextColor="#AAAACC"
@@ -336,6 +338,7 @@ export default function WelcomeScreen() {
 
                   <Text style={styles.fieldLabel}>E-mail</Text>
                   <TextInput
+                    testID="input-register-email"
                     style={styles.input}
                     placeholder="seu@email.com"
                     placeholderTextColor="#AAAACC"
@@ -348,6 +351,7 @@ export default function WelcomeScreen() {
 
                   <Text style={styles.fieldLabel}>Senha</Text>
                   <TextInput
+                    testID="input-register-password"
                     style={styles.input}
                     placeholder="Mínimo 6 caracteres"
                     placeholderTextColor="#AAAACC"
@@ -358,11 +362,12 @@ export default function WelcomeScreen() {
 
                   <Text style={styles.fieldLabel}>Foto do Perfil *</Text>
                   <TouchableOpacity
+                    testID="btn-foto-perfil"
                     style={[styles.optionBtn, regPhoto && styles.optionBtnDone]}
                     onPress={handleTakePhoto}
                   >
                     {regPhoto ? (
-                      <Text style={styles.optionTextDone}>✓ Foto capturada</Text>
+                      <Text style={styles.optionTextDone}>Foto capturada</Text>
                     ) : (
                       <>
                         <Text style={styles.optionIcon}>📷</Text>
@@ -373,6 +378,7 @@ export default function WelcomeScreen() {
 
                   <Text style={styles.fieldLabel}>Biometria *</Text>
                   <TouchableOpacity
+                    testID="btn-biometria"
                     style={[styles.optionBtn, biometricEnrolled && styles.optionBtnDone]}
                     onPress={handleEnrollBiometric}
                   >
@@ -386,7 +392,7 @@ export default function WelcomeScreen() {
                     )}
                   </TouchableOpacity>
 
-                  <TouchableOpacity onPress={handleRegister} disabled={loading} style={styles.submitWrap}>
+                  <TouchableOpacity testID="btn-register-submit" onPress={handleRegister} disabled={loading} style={styles.submitWrap}>
                     <LinearGradient colors={['#8B2FC9', '#5C1A8C']} style={styles.submitBtn}>
                       {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.submitText}>Criar Conta</Text>}
                     </LinearGradient>
@@ -522,6 +528,7 @@ const styles = StyleSheet.create({
   loginForm: {
     paddingTop: 6,
     paddingBottom: 36,
+    minHeight: 260,
   },
 
   registerScroll: {

@@ -11,6 +11,7 @@ const HOTELS_SEED = [
     rating: 4.5,
     totalRatings: 328,
     coordinates: { latitude: -22.5435, longitude: -44.1715 },
+    realHotelName: 'Hotel Plaza Ferreira',
     description:
       'O VassHotel Barra Mansa oferece conforto e sofisticação no coração da cidade. Com infraestrutura completa e atendimento personalizado, é a escolha ideal para viagens de negócios e lazer no Sul Fluminense.',
     amenities: ['Wi-Fi Grátis', 'Piscina', 'Academia', 'Restaurante', 'Estacionamento', 'Ar-condicionado'],
@@ -29,6 +30,7 @@ const HOTELS_SEED = [
     rating: 4.2,
     totalRatings: 245,
     coordinates: { latitude: -22.5232, longitude: -44.1045 },
+    realHotelName: 'Hotel Avenida',
     description:
       'Localizado na região central de Volta Redonda, o VassHotel oferece uma experiência premium com spa, bar sofisticado e salas de conferência modernas. Ideal para executivos e turistas que buscam o melhor da hospitalidade.',
     amenities: ['Wi-Fi Grátis', 'Spa', 'Bar', 'Restaurante', 'Sala de Conferências', 'Room Service'],
@@ -47,6 +49,7 @@ const HOTELS_SEED = [
     rating: 4.8,
     totalRatings: 189,
     coordinates: { latitude: -22.4039, longitude: -43.6632 },
+    realHotelName: 'Hotel Fazenda Galo Vermelho',
     description:
       'Instalado em um casarão histórico no centro de Vassouras, o VassHotel preserva a arquitetura imperial da Cidade Imperial do Café. Um refúgio único que combina história, natureza e hospitalidade de alto padrão.',
     amenities: ['Wi-Fi Grátis', 'Jardim Histórico', 'Café Colonial', 'Bicicletas', 'Tour Histórico', 'Piscina'],

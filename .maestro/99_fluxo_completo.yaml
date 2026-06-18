@@ -1,0 +1,143 @@
+appId: host.exp.exponent
+env:
+  EMAIL_TESTE: teste@vasshotel.com
+  SENHA_TESTE: teste123456
+---
+- launchApp:
+    clearState: true
+- openLink: "exp://127.0.0.1:8081"
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 20000
+    optional: true
+- tapOn:
+    point: "50%,15%"
+    optional: true
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "btn-welcome-login"
+    timeout: 15000
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 3000
+    optional: true
+- tapOn:
+    point: "50%,15%"
+    optional: true
+- tapOn:
+    id: "btn-welcome-login"
+
+# Login
+- extendedWaitUntil:
+    visible:
+      id: "input-login-email"
+    timeout: 15000
+- tapOn:
+    id: "input-login-email"
+- inputText: "${EMAIL_TESTE}"
+- tapOn:
+    id: "input-login-password"
+- hideKeyboard
+- inputText: "${SENHA_TESTE}"
+- tapOn:
+    id: "btn-login-submit"
+- extendedWaitUntil:
+    visible:
+      text: "Nossas Unidades"
+    timeout: 15000
+
+- assertVisible: "Nossas Unidades"
+- assertVisible: "VassHotel Barra Mansa"
+- assertVisible: "VassHotel Volta Redonda"
+- scrollUntilVisible:
+    element:
+      text: "VassHotel Vassouras"
+    direction: DOWN
+- assertVisible: "VassHotel Vassouras"
+
+- scrollUntilVisible:
+    element:
+      id: "input-search"
+    direction: UP
+- tapOn:
+    id: "input-search"
+- inputText: "Vassouras"
+- assertVisible: "VassHotel Vassouras"
+- assertNotVisible: "VassHotel Barra Mansa"
+- hideKeyboard
+
+- tapOn: "VassHotel Vassouras"
+- waitForAnimationToEnd
+- assertVisible: "Sobre o Hotel"
+- assertVisible: "Localização"
+- scrollUntilVisible:
+    element:
+      id: "btn-reserve"
+    direction: DOWN
+- assertVisible:
+    id: "btn-reserve"
+
+- tapOn:
+    id: "btn-reserve"
+- waitForAnimationToEnd
+- assertVisible: "Reservar"
+- assertVisible: "Check-in"
+- assertVisible: "Check-out"
+- assertVisible: "Hóspedes"
+- tapOn:
+    id: "btn-confirmar-reserva"
+- extendedWaitUntil:
+    visible:
+      text: "Reserva Confirmada!"
+    timeout: 20000
+- assertVisible: "Reserva Confirmada!"
+- tapOn: "OK"
+- back
+- waitForAnimationToEnd
+
+- tapOn:
+    id: "btn-reservations"
+- waitForAnimationToEnd
+- assertVisible: "Minhas Reservas"
+- scrollUntilVisible:
+    element:
+      text: "Editar reserva"
+    direction: DOWN
+- tapOn: "Editar reserva"
+- waitForAnimationToEnd
+- assertVisible: "Editar Reserva"
+- tapOn: "Salvar Alterações"
+- extendedWaitUntil:
+    visible:
+      text: "Reserva Atualizada!"
+    timeout: 20000
+- assertVisible: "Reserva Atualizada!"
+- tapOn: "OK"
+
+- scrollUntilVisible:
+    element:
+      text: "Cancelar reserva"
+    direction: DOWN
+- tapOn: "Cancelar reserva"
+- assertVisible: "Cancelar Reserva"
+- tapOn: "Cancelar Reserva"
+- extendedWaitUntil:
+    visible:
+      text: "Reserva Cancelada"
+    timeout: 20000
+- assertVisible: "Reserva Cancelada"
+- tapOn: "OK"
+
+- back
+- waitForAnimationToEnd
+- tapOn:
+    id: "btn-logout"
+- assertVisible: "Sair"
+- tapOn: "Sair"
+- extendedWaitUntil:
+    visible:
+      id: "btn-welcome-login"
+    timeout: 20000
+- assertVisible:
+    id: "btn-welcome-login"

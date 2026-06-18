@@ -1,13 +1,5 @@
 import { db } from '../config/firebase';
-import {
-  collection,
-  addDoc,
-  query,
-  where,
-  getDocs,
-  doc,
-  updateDoc,
-} from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 
 export const createReservation = async ({ userId, hotelId, hotelName, hotelCity, hotelState, imageKey, checkIn, checkOut, guests }) => {
   return await addDoc(collection(db, 'reservations'), {
@@ -34,4 +26,8 @@ export const getUserReservations = async (userId) => {
 
 export const cancelReservation = async (reservationId) => {
   await updateDoc(doc(db, 'reservations', reservationId), { status: 'cancelled' });
+};
+
+export const updateReservation = async (reservationId, { checkIn, checkOut, guests }) => {
+  await updateDoc(doc(db, 'reservations', reservationId), { checkIn, checkOut, guests });
 };

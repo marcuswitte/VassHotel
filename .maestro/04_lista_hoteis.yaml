@@ -1,0 +1,24 @@
+appId: host.exp.exponent
+env:
+  EMAIL_TESTE: teste@vasshotel.com
+  SENHA_TESTE: teste123456
+---
+- launchApp:
+    clearState: true
+- openLink: "exp://127.0.0.1:8081"
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 20000
+    optional: true
+- tapOn:
+    point: "50%,15%"
+    optional: true
+- runFlow: helpers/login_helper.yaml
+- assertVisible: "Nossas Unidades"
+- assertVisible: "VassHotel Barra Mansa"
+- assertVisible: "VassHotel Volta Redonda"
+- scrollUntilVisible:
+    element:
+      text: "VassHotel Vassouras"
+    direction: DOWN
+- assertVisible: "VassHotel Vassouras"

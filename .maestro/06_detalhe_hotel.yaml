@@ -1,0 +1,38 @@
+appId: host.exp.exponent
+env:
+  EMAIL_TESTE: teste@vasshotel.com
+  SENHA_TESTE: teste123456
+---
+- launchApp:
+    clearState: true
+- openLink: "exp://127.0.0.1:8081"
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 20000
+    optional: true
+- tapOn:
+    point: "50%,15%"
+    optional: true
+- runFlow: helpers/login_helper.yaml
+- tapOn:
+    id: "card-hotel-1"
+- waitForAnimationToEnd
+- assertVisible: "Quartos disponíveis"
+- assertVisible: "Sobre o Hotel"
+- assertVisible: "Localização"
+- scrollUntilVisible:
+    element:
+      text: "Contato"
+    direction: DOWN
+- assertVisible: "Contato"
+- scrollUntilVisible:
+    element:
+      text: "Comodidades"
+    direction: DOWN
+- assertVisible: "Comodidades"
+- scrollUntilVisible:
+    element:
+      id: "btn-reserve"
+    direction: DOWN
+- assertVisible:
+    id: "btn-reserve"

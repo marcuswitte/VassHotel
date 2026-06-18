@@ -1,0 +1,33 @@
+appId: host.exp.exponent
+---
+- launchApp:
+    clearState: true
+- openLink: "exp://127.0.0.1:8081"
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 20000
+    optional: true
+- tapOn:
+    point: "50%,15%"
+    optional: true
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "btn-welcome-login"
+    timeout: 6000
+- tapOn:
+    id: "btn-welcome-login"
+- extendedWaitUntil:
+    visible:
+      id: "input-login-email"
+    timeout: 6000
+- tapOn:
+    id: "input-login-email"
+- inputText: "usuario_invalido@teste.com"
+- tapOn:
+    id: "input-login-password"
+- hideKeyboard
+- inputText: "senhaerrada"
+- tapOn:
+    id: "btn-login-submit"
+- assertVisible: "Erro de Login"

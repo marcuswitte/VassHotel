@@ -1,0 +1,22 @@
+appId: host.exp.exponent
+---
+- launchApp:
+    clearState: true
+- openLink: "exp://127.0.0.1:8081"
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 20000
+    optional: true
+- tapOn:
+    point: "50%,15%"
+    optional: true
+- waitForAnimationToEnd
+- assertVisible: "VASSHOTEIS"
+- extendedWaitUntil:
+    visible:
+      id: "btn-welcome-login"
+    timeout: 6000
+- assertVisible:
+    id: "btn-welcome-login"
+- assertVisible:
+    id: "btn-welcome-register"

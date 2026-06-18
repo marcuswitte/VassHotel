@@ -1,0 +1,82 @@
+appId: host.exp.exponent
+env:
+  EMAIL_TESTE: teste@vasshotel.com
+  SENHA_TESTE: teste123456
+---
+- launchApp:
+    clearState: true
+- openLink: "exp://127.0.0.1:8081"
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 20000
+    optional: true
+- tapOn:
+    point: "50%,15%"
+    optional: true
+- runFlow: helpers/login_helper.yaml
+
+# Fazer reserva
+- tapOn:
+    id: "card-hotel-1"
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element:
+      id: "btn-reserve"
+    direction: DOWN
+- tapOn:
+    id: "btn-reserve"
+- waitForAnimationToEnd
+- assertVisible: "Reservar"
+- assertVisible: "Check-in"
+- assertVisible: "Check-out"
+- assertVisible: "Hóspedes"
+- tapOn:
+    id: "btn-confirmar-reserva"
+- extendedWaitUntil:
+    visible:
+      text: "Reserva Confirmada!"
+    timeout: 20000
+- assertVisible: "Reserva Confirmada!"
+- tapOn: "OK"
+- back
+- waitForAnimationToEnd
+
+# Ver reservas
+- tapOn:
+    id: "btn-reservations"
+- waitForAnimationToEnd
+- assertVisible: "Minhas Reservas"
+
+# Editar reserva
+- scrollUntilVisible:
+    element:
+      text: "Editar reserva"
+    direction: DOWN
+- tapOn: "Editar reserva"
+- waitForAnimationToEnd
+- assertVisible: "Editar Reserva"
+- assertVisible: "Check-in"
+- assertVisible: "Check-out"
+- assertVisible: "Hóspedes"
+- tapOn: "Salvar Alterações"
+- extendedWaitUntil:
+    visible:
+      text: "Reserva Atualizada!"
+    timeout: 20000
+- assertVisible: "Reserva Atualizada!"
+- tapOn: "OK"
+
+# Cancelar reserva
+- scrollUntilVisible:
+    element:
+      text: "Cancelar reserva"
+    direction: DOWN
+- tapOn: "Cancelar reserva"
+- assertVisible: "Cancelar Reserva"
+- tapOn: "Cancelar Reserva"
+- extendedWaitUntil:
+    visible:
+      text: "Reserva Cancelada"
+    timeout: 20000
+- assertVisible: "Reserva Cancelada"
+- tapOn: "OK"

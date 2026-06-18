@@ -1,10 +1,11 @@
 import { useState, useCallback, useEffect, memo } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert, RefreshControl, ImageBackground, Modal, TextInput, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert, RefreshControl, ImageBackground, Modal, TextInput, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../context/AuthContext';
+import { changeUserPassword } from '../services/authService';
 import { getHotels, seedHotels } from '../services/hotelService';
 import { LOGO_TRANSPARENT, HOTEL_IMG_1, HOTEL_IMG_2, HOTEL_IMG_3 } from '../assets/images';
 import { compressToBase64 } from '../utils/imageUtils';
@@ -29,7 +30,7 @@ const starStyles = StyleSheet.create({
 
 function HotelCard({ hotel, onPress }) {
   return (
-    <TouchableOpacity style={cardStyles.card} onPress={onPress} activeOpacity={0.88}>
+    <TouchableOpacity style={cardStyles.card} onPress={onPress} activeOpacity={0.88} testID={`card-hotel-${hotel.id}`}>
       <ImageBackground source={hotel.image} style={cardStyles.header} imageStyle={cardStyles.headerImage}>
         <LinearGradient colors={['transparent', 'rgba(0,0,0,0.35)']} style={cardStyles.headerOverlay} />
         <View style={[cardStyles.badge, hotel.isFull ? cardStyles.badgeFull : cardStyles.badgeAvail]}>
@@ -39,6 +40,9 @@ function HotelCard({ hotel, onPress }) {
 
       <View style={cardStyles.body}>
         <Text style={cardStyles.name}>{hotel.name}</Text>
+        {hotel.realHotelName && (
+          <Text style={cardStyles.realName}>{hotel.realHotelName}</Text>
+        )}
         <Text style={cardStyles.address}>{hotel.city} — {hotel.state}</Text>
         <StarRating rating={hotel.rating} />
         <Text style={cardStyles.ratingCount}>({hotel.totalRatings} avaliações)</Text>
@@ -60,6 +64,7 @@ function HotelCard({ hotel, onPress }) {
           style={[cardStyles.ctaBtn, hotel.isFull && cardStyles.ctaBtnDisabled]}
           onPress={hotel.isFull ? undefined : onPress}
           disabled={hotel.isFull}
+          testID={`btn-ver-detalhes-${hotel.id}`}
         >
           <Text style={cardStyles.ctaText}>
             {hotel.isFull ? 'Indisponível' : 'Ver detalhes'}
@@ -100,6 +105,7 @@ const cardStyles = StyleSheet.create({
   badgeText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
   body: { padding: 16 },
   name: { fontSize: 17, fontWeight: '800', color: '#1A0033', marginBottom: 2 },
+  realName: { color: '#9B6CC9', fontSize: 12, fontWeight: '600', fontStyle: 'italic', marginBottom: 2 },
   address: { color: '#888899', fontSize: 13 },
   ratingCount: { color: '#AAAACC', fontSize: 12, marginTop: 2 },
   amenitiesRow: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 10, gap: 6 },
@@ -125,10 +131,10 @@ const HotelListHeader = memo(function HotelListHeader({ user, firstName, searchQ
               </View>
             </View>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity onPress={onReservations} style={styles.logoutBtn}>
+              <TouchableOpacity onPress={onReservations} style={styles.logoutBtn} testID="btn-reservations">
                 <MaterialIcons name="bookmark" size={20} color="#FFFFFF" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={onLogout} style={styles.logoutBtn}>
+              <TouchableOpacity onPress={onLogout} style={styles.logoutBtn} testID="btn-logout">
                 <MaterialIcons name="logout" size={20} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -146,7 +152,7 @@ const HotelListHeader = memo(function HotelListHeader({ user, firstName, searchQ
               <Text style={styles.profileName}>{user?.name}</Text>
               <Text style={styles.profileEmail}>{user?.email}</Text>
             </View>
-            <TouchableOpacity onPress={onEditProfile} style={styles.editProfileBtn}>
+            <TouchableOpacity onPress={onEditProfile} style={styles.editProfileBtn} testID="btn-edit-profile">
               <MaterialIcons name="edit" size={18} color="rgba(255,255,255,0.85)" />
             </TouchableOpacity>
           </View>
@@ -161,6 +167,7 @@ const HotelListHeader = memo(function HotelListHeader({ user, firstName, searchQ
       <View style={styles.searchContainer}>
         <MaterialIcons name="search" size={20} color="#9999BB" style={styles.searchIcon} />
         <TextInput
+          testID="input-search"
           style={styles.searchInput}
           placeholder="Buscar hotéis..."
           placeholderTextColor="#9999BB"
@@ -185,11 +192,19 @@ function EditProfileModal({ visible, user, onClose, updateUser }) {
   const [photo, setPhoto] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwLoading, setPwLoading] = useState(false);
+
   useEffect(() => {
     if (visible && user) {
       setName(user.name ?? '');
       setEmail(user.email ?? '');
       setPhoto(user.photoUri ?? null);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
     }
   }, [visible, user]);
 
@@ -222,6 +237,42 @@ function EditProfileModal({ visible, user, onClose, updateUser }) {
     onClose();
   };
 
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Campos obrigatórios', 'Preencha a senha atual e a nova senha.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      Alert.alert('Senha muito curta', 'A nova senha deve ter pelo menos 6 caracteres.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Senhas diferentes', 'A nova senha e a confirmação não coincidem.');
+      return;
+    }
+
+    setPwLoading(true);
+    try {
+      await changeUserPassword(currentPassword, newPassword);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      Alert.alert('Sucesso', 'Sua senha foi alterada.');
+    } catch (error) {
+      let message = 'Não foi possível alterar a senha. Tente novamente.';
+      if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        message = 'Senha atual incorreta.';
+      } else if (error.code === 'auth/weak-password') {
+        message = 'A nova senha é muito fraca.';
+      } else if (error.code === 'auth/too-many-requests') {
+        message = 'Muitas tentativas. Tente novamente mais tarde.';
+      }
+      Alert.alert('Erro', message);
+    } finally {
+      setPwLoading(false);
+    }
+  };
+
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
       <View style={editStyles.container}>
@@ -233,6 +284,10 @@ function EditProfileModal({ visible, user, onClose, updateUser }) {
           <View style={{ width: 40 }} />
         </View>
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'android' ? 'padding' : 'height'}
+        >
         <ScrollView contentContainerStyle={editStyles.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <View style={editStyles.photoSection}>
             <TouchableOpacity onPress={handleTakePhoto} style={editStyles.photoWrapper}>
@@ -277,7 +332,54 @@ function EditProfileModal({ visible, user, onClose, updateUser }) {
               {loading ? <ActivityIndicator color="#FFF" /> : <Text style={editStyles.saveBtnText}>Salvar Alterações</Text>}
             </LinearGradient>
           </TouchableOpacity>
+
+          <View style={editStyles.divider} />
+
+          <Text style={editStyles.sectionTitle}>Alterar Senha</Text>
+
+          <Text style={editStyles.fieldLabel}>Senha Atual</Text>
+          <TextInput
+            testID="input-current-password"
+            style={editStyles.input}
+            value={currentPassword}
+            onChangeText={setCurrentPassword}
+            placeholder="Digite sua senha atual"
+            placeholderTextColor="#AAAACC"
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          <Text style={editStyles.fieldLabel}>Nova Senha</Text>
+          <TextInput
+            testID="input-new-password"
+            style={editStyles.input}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="Mínimo de 6 caracteres"
+            placeholderTextColor="#AAAACC"
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          <Text style={editStyles.fieldLabel}>Confirmar Nova Senha</Text>
+          <TextInput
+            testID="input-confirm-password"
+            style={editStyles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Repita a nova senha"
+            placeholderTextColor="#AAAACC"
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          <TouchableOpacity onPress={handleChangePassword} disabled={pwLoading} style={editStyles.saveWrap}>
+            <LinearGradient colors={['#8B2FC9', '#5C1A8C']} style={editStyles.saveBtn}>
+              {pwLoading ? <ActivityIndicator color="#FFF" /> : <Text style={editStyles.saveBtnText}>Alterar Senha</Text>}
+            </LinearGradient>
+          </TouchableOpacity>
         </ScrollView>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -328,6 +430,8 @@ const editStyles = StyleSheet.create({
   saveWrap: { marginTop: 28, borderRadius: 14, overflow: 'hidden' },
   saveBtn: { paddingVertical: 15, alignItems: 'center' },
   saveBtnText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700', letterSpacing: 0.5 },
+  divider: { height: 1, backgroundColor: '#E8DEFF', marginTop: 36, marginBottom: 8 },
+  sectionTitle: { fontSize: 16, fontWeight: '800', color: '#1A0033', marginTop: 8 },
 });
 
 export default function HotelListScreen({ navigation }) {

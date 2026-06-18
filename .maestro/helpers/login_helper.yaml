@@ -1,0 +1,35 @@
+appId: host.exp.exponent
+---
+- waitForAnimationToEnd
+- extendedWaitUntil:
+    visible:
+      id: "btn-welcome-login"
+    timeout: 15000
+- extendedWaitUntil:
+    visible: "Continue"
+    timeout: 3000
+    optional: true
+- tapOn:
+    point: "50%,15%"
+    optional: true
+- tapOn:
+    id: "btn-welcome-login"
+- extendedWaitUntil:
+    visible:
+      id: "input-login-email"
+    timeout: 15000
+- tapOn:
+    id: "input-login-email"
+- eraseText
+- inputText: "${EMAIL_TESTE}"
+- tapOn:
+    id: "input-login-password"
+- hideKeyboard
+- eraseText
+- inputText: "${SENHA_TESTE}"
+- tapOn:
+    id: "btn-login-submit"
+- extendedWaitUntil:
+    visible:
+      text: "Nossas Unidades"
+    timeout: 15000

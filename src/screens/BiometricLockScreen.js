@@ -93,6 +93,7 @@ export default function BiometricLockScreen() {
 
           {/* Sair */}
           <TouchableOpacity
+            testID="btn-trocar-conta"
             style={styles.logoutBtn}
             onPress={() =>
               Alert.alert(

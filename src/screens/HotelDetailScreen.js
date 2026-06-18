@@ -179,7 +179,7 @@ function BookingModal({ visible, hotel, userId, onClose }) {
             </View>
           )}
 
-          <TouchableOpacity onPress={handleConfirm} disabled={loading} style={bookingStyles.confirmWrap}>
+          <TouchableOpacity testID="btn-confirmar-reserva" onPress={handleConfirm} disabled={loading} style={bookingStyles.confirmWrap}>
             <LinearGradient colors={['#8B2FC9', '#5C1A8C']} style={bookingStyles.confirmBtn}>
               {loading
                 ? <ActivityIndicator color="#FFF" />
@@ -348,6 +348,9 @@ export default function HotelDetailScreen({ route, navigation }) {
           <View style={styles.heroContent}>
             <Text style={styles.heroCity}>{hotel.city} • {hotel.state}</Text>
             <Text style={styles.heroName}>{hotel.name}</Text>
+            {hotel.realHotelName && (
+              <Text style={styles.heroRealName}>{hotel.realHotelName}</Text>
+            )}
           </View>
           <View style={[styles.availBadge, hotel.isAvailable === false ? styles.availFull : styles.availOpen]}>
             <Text style={styles.availText}>{hotel.isAvailable === false ? 'Sem disponibilidade' : 'Quartos disponíveis'}</Text>
@@ -432,6 +435,7 @@ export default function HotelDetailScreen({ route, navigation }) {
           </View>
 
           <TouchableOpacity
+            testID="btn-reserve"
             style={styles.reserveWrap}
             disabled={hotel.isAvailable === false}
             onPress={() => setShowBooking(true)}
@@ -482,6 +486,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4,
   },
   heroName: { color: '#FFFFFF', fontSize: 24, fontWeight: '800', lineHeight: 30 },
+  heroRealName: { color: 'rgba(255,255,255,0.65)', fontSize: 13, fontWeight: '600', fontStyle: 'italic', marginTop: 2 },
   availBadge: {
     marginHorizontal: 20, paddingVertical: 8, paddingHorizontal: 14,
     borderRadius: 10, alignSelf: 'flex-start',
